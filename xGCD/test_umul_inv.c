@@ -30,7 +30,7 @@ uint8_t umul_inv8(uint8_t a, uint8_t m)
 		x0 = x0 - (int)q*x1; swap(x0,x1,int); // (x1, x0-q*x1)
 	}
 
-	if(d1 == 1) return x1>0 ? (uint64_t)x1 : m-(uint64_t)(-x1); // 음수이면 양수로 변환
+	if(d1 == 1) return x1>0 ? (uint8_t)x1 : m-(uint8_t)(-x1); // 음수이면 양수로 변환
 	else return 0; // a와 m이 서로소가 아니므로 역을 구할 수 없음
 }
 
