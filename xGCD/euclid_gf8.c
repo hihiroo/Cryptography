@@ -4,6 +4,9 @@
  */
 #include <stdio.h>
 #include <stdlib.h>
+#include <bsd/stdlib.h>
+
+#define swap(a,b,type) do{type tmp=a; a=b; b=tmp;}while(0);
 
 /*
  * gcd() - Euclidean algorithm
@@ -15,8 +18,10 @@
  */
 int gcd(int a, int b)
 {
-    // 여기를 완성하세요
+    if(b == 0) return a;
+    return gcd(b, a%b);
 }
+
 
 /*
  * xgcd() - Extended Euclidean algorithm
@@ -27,7 +32,17 @@ int gcd(int a, int b)
  */
 int xgcd(int a, int b, int *x, int *y)
 {
-    // 여기를 완성하세요
+    int d0 = a, d1 = b, q, x0=1, x1=0, y0=0, y1=1;
+
+	while(d1){
+		q = d0/d1;
+		d0 = d0 - q*d1; swap(d0,d1,int); // (d0,d1) = (d1,d0%d1)
+		x0 = x0 - q*x1; swap(x0,x1,int); // xi+1 = xi-1 - q*xi
+        y0 = y0 - q*y1; swap(y0,y1,int); // yi+1 = yi-1 - q*yi
+	}
+
+    *x = x0, *y = y0;
+    return d0; // a와 b의 최대공약수
 }
 
 /*
@@ -39,7 +54,9 @@ int xgcd(int a, int b, int *x, int *y)
  */
 int mul_inv(int a, int m)
 {
-    // 여기를 완성하세요
+    int x, y;
+    if(xgcd(a,m,&x,&y) != 1) return 0; // 서로소가 아니면 역을 구할 수 없음
+    return x<0 ? x+m : x;
 }
 
 /*
@@ -53,7 +70,21 @@ int mul_inv(int a, int m)
  */
 uint64_t umul_inv(uint64_t a, uint64_t m)
 {
-    // 여기를 완성하세요
+    uint64_t d0 = a, d1 = m, q; 
+	long long x0 = 1, x1 = 0; // 음수를 저장할 수 있는 타입 필요
+
+	while(d1 > 1){
+		q = d0/d1;
+		d0 = d0 - q*d1; swap(d0,d1,uint64_t); // (d1,d0%d1)
+		x0 = x0 - (long long)q*x1; swap(x0,x1,long long); // (x1, x0-q*x1)
+	}
+
+	if(d1 == 1) return x1>0 ? (uint64_t)x1 : m-(uint64_t)(-x1); // 음수이면 양수로 변환
+	else return 0; // a와 m이 서로소가 아니므로 역을 구할 수 없음
+}
+
+uint8_t gf8_xtime(uint8_t x){
+    return (x<<1) ^ ((x>>7) & 1 ? 0x1B : 0);
 }
 
 /*
@@ -64,7 +95,16 @@ uint64_t umul_inv(uint64_t a, uint64_t m)
  */
 uint8_t gf8_mul(uint8_t a, uint8_t b)
 {
-    // 여기를 완성하세요
+    uint8_t r = 0; // 현재까지 구한 나머지
+    //b의 비트가 1이면 r += a*x^(비트가 1인 b의 자리수)
+    
+    while(b>0){
+        if(b&1) r=r^a; 
+        b = b >> 1;
+        a = gf8_xtime(a);
+    }
+    
+    return r;
 }
 
 /*
@@ -75,7 +115,13 @@ uint8_t gf8_mul(uint8_t a, uint8_t b)
  */
 uint8_t gf8_pow(uint8_t a, uint8_t b)
 {
-    // 여기를 완성하세요
+    uint8_t ans = 1;
+    while(b){
+        if(b&1) ans = gf8_mul(ans,a); // b가 홀수이면 a를 곱해준다.
+        a = gf8_mul(a,a); // a = a^2으로 만들어준다.
+        b >>= 1; // b를 2로 나눈다.
+    }
+    return ans;
 }
 
 /*
