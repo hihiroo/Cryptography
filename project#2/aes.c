@@ -55,18 +55,25 @@ void uint8_to_uint32(const uint8_t *a, uint32_t *res){
   *res = ((uint32_t)a[3] << 24) | ((uint32_t)a[2] << 16) | ((uint32_t)a[1] << 8) | (uint32_t)a[0];
 }
 
-uint32_t g_func(uint32_t *rkey){
-  uint8_t *tmp = (uint8_t *)rkey, rot0 = tmp[0];
+void LRotWord(uint8_t *array){ // 한 칸 왼쪽으로 이동
+  uint8_t rot0 = array[0];
+  for(int i=0; i<3; i++) array[i] = array[i+1];
+  array[3] = rot0;
+}
+
+uint32_t g_func(uint32_t *rkey, int roundNum){
+  uint8_t tmp[4];
+  memcpy(tmp, rkey, 4);
 
   // LRotWord and S-Box
-  for(int i=0; i<3; i++) tmp[i] = sbox[tmp[i+1]];
-  tmp[3] = sbox[rot0];
+  LRotWord(tmp);
+  for(int i=0; i<4; i++) tmp[i] = sbox[tmp[i]];
 
   // casting uint8 to uint32
   uint32_t res;
   uint8_to_uint32(tmp, &res);
 
-  return res;
+  return res ^ Rcon[roundNum];
 }
 
 void KeyExpansion(const uint8_t *key, uint32_t *roundKey)
@@ -80,25 +87,45 @@ void KeyExpansion(const uint8_t *key, uint32_t *roundKey)
   }
 
   for(int i=Nk; i<RNDKEYSIZE; i++){ // key expansion
-    if(i % Nk == 0) roundKey[i] = g_func(roundKey+i-1) ^ roundKey[i-Nk];
+    if(i % Nk == 0) roundKey[i] = g_func(roundKey+i-1, i/Nk) ^ roundKey[i-Nk];
     else roundKey[i] = roundKey[i-1] ^ roundKey[i-Nk];
   }
 }
 
 static void AddRoundKey(uint8_t *state, const uint32_t *roundKey){
-
+  uint8_t *tmp = (uint8_t *)roundKey;
+  for(int i=0; i<BLOCKLEN; i++) state[i] = state[i] ^ tmp[i];
 }
 
 static void SubBytes(uint8_t *state, int mode){
-
+  if(mode == ENCRYPT){
+    for(int i=0; i<BLOCKLEN; i++) state[i] = sbox[state[i]];
+  }
+  else{
+    for(int i=0; i<BLOCKLEN; i++) state[i] = isbox[state[i]];
+  }
 }
 
 static void ShiftRows(uint8_t *state, int mode){
-
+  if(mode == ENCRYPT){
+    for(int k=0; k<Nb; k++){
+      for(int j=0; j<k; j++) LRotWord(state+k*4);
+    }
+  }
+  else{
+    for(int k=0; k<Nb; k++){
+      for(int j=0; j<4-k; j++) LRotWord(state+k*4);
+    }
+  }
 }
 
 static void MixColumns(uint8_t *state, int mode){
+  if(mode == ENCRYPT){ // XA = B (X = state)
 
+  }
+  else{ // X = A^-1B (B = state)
+
+  }
 }
 
 /*
@@ -112,7 +139,13 @@ void Cipher(uint8_t *state, const uint32_t *roundKey, int mode)
   // 마지막 라운드는 mix columns이 빠진 incomplete round
   AddRoundKey(state, roundKey);
 
-  for(int i=0; i<Nr-1; i++){
-    
+  for(int i=1; i<Nr; i++){
+    SubBytes(state,mode);
+    ShiftRows(state,mode);
+    MixColumns(state,mode);
+    AddRoundKey(state,roundKey+Nb*i);
   }
+  SubBytes(state,mode);
+  ShiftRows(state,mode);
+  AddRoundKey(state,roundKey+Nb*Nr);
 }
