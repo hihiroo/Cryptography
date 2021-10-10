@@ -51,8 +51,54 @@ static const uint8_t IM[16] = {0x0e, 0x0b, 0x0d, 0x09, 0x09, 0x0e, 0x0b, 0x0d, 0
 /*
  * Generate an AES key schedule
  */
+void uint8_to_uint32(const uint8_t *a, uint32_t *res){
+  *res = ((uint32_t)a[3] << 24) | ((uint32_t)a[2] << 16) | ((uint32_t)a[1] << 8) | (uint32_t)a[0];
+}
+
+uint32_t g_func(uint32_t *rkey){
+  uint8_t *tmp = (uint8_t *)rkey, rot0 = tmp[0];
+
+  // LRotWord and S-Box
+  for(int i=0; i<3; i++) tmp[i] = sbox[tmp[i+1]];
+  tmp[3] = sbox[rot0];
+
+  // casting uint8 to uint32
+  uint32_t res;
+  uint8_to_uint32(tmp, &res);
+
+  return res;
+}
+
 void KeyExpansion(const uint8_t *key, uint32_t *roundKey)
 {
+  // key가 주어지면 각 라운드에 쓰일 roundkey 계산
+  // key[0:3] = w0, key[4:7] = w1, ..., key[KEYLEN-4:KEYLEN-1] = w_NK-1
+  // 즉, 각 key는 1바이트 단위, round key는 4바이트 단위
+
+  for(int i=0; i<Nk; i++){ // 첫 라운드는 사용자 키를 사용
+    uint8_to_uint32(key+i*4, &roundKey[i]);
+  }
+
+  for(int i=Nk; i<RNDKEYSIZE; i++){ // key expansion
+    if(i % Nk == 0) roundKey[i] = g_func(roundKey+i-1) ^ roundKey[i-Nk];
+    else roundKey[i] = roundKey[i-1] ^ roundKey[i-Nk];
+  }
+}
+
+static void AddRoundKey(uint8_t *state, const uint32_t *roundKey){
+
+}
+
+static void SubBytes(uint8_t *state, int mode){
+
+}
+
+static void ShiftRows(uint8_t *state, int mode){
+
+}
+
+static void MixColumns(uint8_t *state, int mode){
+
 }
 
 /*
@@ -61,4 +107,12 @@ void KeyExpansion(const uint8_t *key, uint32_t *roundKey)
  */
 void Cipher(uint8_t *state, const uint32_t *roundKey, int mode)
 {
+  // 처음 state는 plaintext or ciphertext
+  // 각 라운드마다 substitude bytes -> shift rows -> Mix columns -> add round key
+  // 마지막 라운드는 mix columns이 빠진 incomplete round
+  AddRoundKey(state, roundKey);
+
+  for(int i=0; i<Nr-1; i++){
+    
+  }
 }

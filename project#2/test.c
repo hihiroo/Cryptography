@@ -30,59 +30,59 @@ int main(void)
     printf("\n<라운드 키>\n");
     KeyExpansion(key, roundKey);
     for (i = 0; i < RNDKEYSIZE; ++i) {
-        p = (uint8_t *)(roundKey+i);
+        p = (uint8_t *)(roundKey+i); // 한 개의 round key를 1바이트 단위로 쪼개서 출력
         printf("%02x %02x %02x %02x ", p[0], p[1], p[2], p[3]);
         if ((i+1)%4 == 0)
             printf("\n");
     }
-    printf("---\n<평문>\n");
-    for (i = 0; i < BLOCKLEN; ++i)
-        printf("%02x ", in[i]);
-    printf("\n<암호문>\n");
-    memcpy(buf, in, BLOCKLEN);
-    Cipher(buf, roundKey, ENCRYPT);
-    for (i = 0; i < BLOCKLEN; ++i)
-        printf("%02x ", buf[i]);
-    printf("\n<복호문>\n");
-    Cipher(buf, roundKey, DECRYPT);
-    for (i = 0; i < BLOCKLEN; ++i)
-        printf("%02x ", buf[i]);
-    printf("\n<역암호문>\n");
-    Cipher(buf, roundKey, DECRYPT);
-    for (i = 0; i < BLOCKLEN; ++i)
-        printf("%02x ", buf[i]);
-    printf("\n<복호문>\n");
-    Cipher(buf, roundKey, ENCRYPT);
-    for (i = 0; i < BLOCKLEN; ++i)
-        printf("%02x ", buf[i]);
-    printf("\n");
-    /*
-     * 키와 평문을 무작위로 선택해서 암호화를 100번 수행한 후에 복호화를 200번 수행하고,
-     * 다시 암호화를 100번 수행해서 나온 결과가 평문과 일치하는지 검증한다.
-     * 이 과정을 4096번 반복하여 올바른지 확인한다.
-     */
-    printf("Random testing"); fflush(stdout);
-    count = 0;
-    do {
-        arc4random_buf(key, KEYLEN);
-        KeyExpansion(key, roundKey);
-        arc4random_buf(in, BLOCKLEN);
-        memcpy(buf, in, BLOCKLEN);
-        for (i = 0; i < 100; ++i)
-            Cipher(buf, roundKey, ENCRYPT);
-        for (i = 0; i < 200; ++i)
-            Cipher(buf, roundKey, DECRYPT);
-        for (i = 0; i < 100; ++i)
-            Cipher(buf, roundKey, ENCRYPT);
-        for (i = 0; i < BLOCKLEN; ++i)
-            if (buf[i] != in[i]) {
-                    printf("Logic error\n");
-                    exit(1);
-            }
-        if (++count % 0xff == 0) {
-            printf(".");
-            fflush(stdout);
-        }
-    } while (count < 0xfff);
-    printf("No error found\n");
+    // printf("---\n<평문>\n");
+    // for (i = 0; i < BLOCKLEN; ++i)
+    //     printf("%02x ", in[i]);
+    // printf("\n<암호문>\n");
+    // memcpy(buf, in, BLOCKLEN);
+    // Cipher(buf, roundKey, ENCRYPT);
+    // for (i = 0; i < BLOCKLEN; ++i)
+    //     printf("%02x ", buf[i]);
+    // printf("\n<복호문>\n");
+    // Cipher(buf, roundKey, DECRYPT);
+    // for (i = 0; i < BLOCKLEN; ++i)
+    //     printf("%02x ", buf[i]);
+    // printf("\n<역암호문>\n");
+    // Cipher(buf, roundKey, DECRYPT);
+    // for (i = 0; i < BLOCKLEN; ++i)
+    //     printf("%02x ", buf[i]);
+    // printf("\n<복호문>\n");
+    // Cipher(buf, roundKey, ENCRYPT);
+    // for (i = 0; i < BLOCKLEN; ++i)
+    //     printf("%02x ", buf[i]);
+    // printf("\n");
+    // /*
+    //  * 키와 평문을 무작위로 선택해서 암호화를 100번 수행한 후에 복호화를 200번 수행하고,
+    //  * 다시 암호화를 100번 수행해서 나온 결과가 평문과 일치하는지 검증한다.
+    //  * 이 과정을 4096번 반복하여 올바른지 확인한다.
+    //  */
+    // printf("Random testing"); fflush(stdout);
+    // count = 0;
+    // do {
+    //     arc4random_buf(key, KEYLEN);
+    //     KeyExpansion(key, roundKey);
+    //     arc4random_buf(in, BLOCKLEN);
+    //     memcpy(buf, in, BLOCKLEN);
+    //     for (i = 0; i < 100; ++i)
+    //         Cipher(buf, roundKey, ENCRYPT);
+    //     for (i = 0; i < 200; ++i)
+    //         Cipher(buf, roundKey, DECRYPT);
+    //     for (i = 0; i < 100; ++i)
+    //         Cipher(buf, roundKey, ENCRYPT);
+    //     for (i = 0; i < BLOCKLEN; ++i)
+    //         if (buf[i] != in[i]) {
+    //                 printf("Logic error\n");
+    //                 exit(1);
+    //         }
+    //     if (++count % 0xff == 0) {
+    //         printf(".");
+    //         fflush(stdout);
+    //     }
+    // } while (count < 0xfff);
+    // printf("No error found\n");
 }
