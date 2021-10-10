@@ -2,13 +2,13 @@ CC=gcc
 CFLAGS=-Wall
 
 all: test.o aes.o
-	$(CC) $(CFLAGS) -o test test.o aes.o
+	$(CC) $(CFLAGS) -o test test.o aes.o -lbsd
 
 test.o: test.c aes.h
-	$(CC) $(CFLAGS) -c test.c
+	$(CC) $(CFLAGS) -c test.c -lbsd
 
 aes.o: aes.c aes.h
-	$(CC) $(CFLAGS) -c aes.c
+	$(CC) $(CFLAGS) -c aes.c -lbsd
 
 clean:
 	rm -rf *.o
