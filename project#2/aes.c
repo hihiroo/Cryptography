@@ -107,6 +107,8 @@ static void SubBytes(uint8_t *state, int mode){
 }
 
 static void ShiftRows(uint8_t *state, int mode){
+  // k번째 행의 각 원소를 k번 왼쪽으로 이동시킴
+  // 복호화 모드에서는 오른쪽으로 k번 이동
   for(int k=0; k<4; k++){ // k번째 행 
     uint8_t tmp[Nb];
     for(int i=0; i<Nb; i++) *(tmp+i) = *(state+i*4+k);
@@ -114,18 +116,17 @@ static void ShiftRows(uint8_t *state, int mode){
     if(mode == ENCRYPT){
       for(int i=0; i<k; i++) LRotWord(tmp);
     }
-    else{
-      for(int i=0; i<Nb-k; i++) LRotWord(tmp);
+    else{// 오른쪽으로 k번 이동 == 왼쪽으로 Nb-k번 이동
+      for(int i=0; i<Nb-k; i++) LRotWord(tmp); 
     }
 
     for(int i=0; i<Nb; i++) state[i*4+k] = tmp[i]; 
   }
 }
 
-uint8_t gf8_mul(uint8_t a, uint8_t b)
-{
-    uint8_t r = 0; // 현재까지 구한 나머지
-    //b의 비트가 1이면 r += a*x^(비트가 1인 b의 자리수)
+uint8_t gf8_mul(uint8_t a, uint8_t b){
+    //gf(2^8)에서의 a*b 연산을 계산한다.
+    uint8_t r = 0; 
     
     while(b>0){
         if(b&1) r=r^a; 
@@ -138,7 +139,9 @@ uint8_t gf8_mul(uint8_t a, uint8_t b)
 
 
 static void MixColumns(uint8_t *state, int mode){
-  // state = tmp*state
+  // gf(2^8)에서의 행렬곱 연산
+  // 암호화 모드에서는 M행렬과, 복호화 모드에서는 IM행렬과 곱해준다.
+  // state = M*state, state = IM*state
   uint8_t tmp[16], res[4][4];
 
   if(mode == ENCRYPT) memcpy(tmp,M,sizeof(M));
@@ -169,8 +172,8 @@ static void MixColumns(uint8_t *state, int mode){
 void Cipher(uint8_t *state, const uint32_t *roundKey, int mode)
 {
   // 처음 state는 plaintext or ciphertext
-  // 각 라운드마다 substitude bytes -> shift rows -> Mix columns -> add round key
-  // 마지막 라운드는 mix columns이 빠진 incomplete round
+  // 마지막은 mix columns이 빠진 incomplete round
+  // 암호화와 복호화 모드일 때 라운드가 거꾸로 진행됨 주의
   if(mode == ENCRYPT){
     AddRoundKey(state, roundKey);
 
@@ -197,5 +200,4 @@ void Cipher(uint8_t *state, const uint32_t *roundKey, int mode)
     SubBytes(state,mode);
     AddRoundKey(state,roundKey);
   }
-  
 }
