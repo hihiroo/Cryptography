@@ -171,18 +171,31 @@ void Cipher(uint8_t *state, const uint32_t *roundKey, int mode)
   // 처음 state는 plaintext or ciphertext
   // 각 라운드마다 substitude bytes -> shift rows -> Mix columns -> add round key
   // 마지막 라운드는 mix columns이 빠진 incomplete round
-  int s_round = Nr, f_round = 0, step = -1;
-  if(mode == ENCRYPT) s_round = 0, f_round = Nr, step = 1;
+  if(mode == ENCRYPT){
+    AddRoundKey(state, roundKey);
 
-  AddRoundKey(state, roundKey+Nb*s_round);
-
-  for(int i=s_round+step; i!=f_round; i+=step){
+    for(int i=1; i<Nr; i++){
+      SubBytes(state,mode);
+      ShiftRows(state,mode);
+      MixColumns(state,mode);
+      AddRoundKey(state,roundKey+Nb*i);
+    }
     SubBytes(state,mode);
     ShiftRows(state,mode);
-    MixColumns(state,mode);
-    AddRoundKey(state,roundKey+Nb*i);
+    AddRoundKey(state,roundKey+Nb*Nr);
   }
-  SubBytes(state,mode);
-  ShiftRows(state,mode);
-  AddRoundKey(state,roundKey+Nb*f_round);
+  else{
+    AddRoundKey(state, roundKey+Nr*Nb);
+
+    for(int i=Nr-1; i>0; i--){
+      ShiftRows(state,mode);
+      SubBytes(state,mode);
+      AddRoundKey(state,roundKey+Nb*i);
+      MixColumns(state,mode);
+    }
+    ShiftRows(state,mode);
+    SubBytes(state,mode);
+    AddRoundKey(state,roundKey);
+  }
+  
 }
