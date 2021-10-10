@@ -61,7 +61,7 @@ void LRotWord(uint8_t *array){ // 한 칸 왼쪽으로 이동
   array[3] = rot0;
 }
 
-uint32_t g_func(uint32_t *rkey, int roundNum){
+uint32_t g_func(const uint32_t *rkey, int roundNum){
   uint8_t tmp[4];
   memcpy(tmp, rkey, 4);
 
@@ -94,7 +94,7 @@ void KeyExpansion(const uint8_t *key, uint32_t *roundKey)
 
 static void AddRoundKey(uint8_t *state, const uint32_t *roundKey){
   uint8_t *tmp = (uint8_t *)roundKey;
-  for(int i=0; i<BLOCKLEN; i++) state[i] = state[i] ^ tmp[i];
+  for(int i=0; i<BLOCKLEN; i++) state[i] ^= tmp[i];
 }
 
 static void SubBytes(uint8_t *state, int mode){
@@ -107,24 +107,57 @@ static void SubBytes(uint8_t *state, int mode){
 }
 
 static void ShiftRows(uint8_t *state, int mode){
-  if(mode == ENCRYPT){
-    for(int k=0; k<Nb; k++){
-      for(int j=0; j<k; j++) LRotWord(state+k*4);
+  for(int k=0; k<4; k++){ // k번째 행 
+    uint8_t tmp[Nb];
+    for(int i=0; i<Nb; i++) *(tmp+i) = *(state+i*4+k);
+
+    if(mode == ENCRYPT){
+      for(int i=0; i<k; i++) LRotWord(tmp);
     }
-  }
-  else{
-    for(int k=0; k<Nb; k++){
-      for(int j=0; j<4-k; j++) LRotWord(state+k*4);
+    else{
+      for(int i=0; i<Nb-k; i++) LRotWord(tmp);
     }
+
+    for(int i=0; i<Nb; i++) state[i*4+k] = tmp[i]; 
   }
 }
 
+uint8_t gf8_mul(uint8_t a, uint8_t b)
+{
+    uint8_t r = 0; // 현재까지 구한 나머지
+    //b의 비트가 1이면 r += a*x^(비트가 1인 b의 자리수)
+    
+    while(b>0){
+        if(b&1) r=r^a; 
+        b = b >> 1;
+        a = XTIME(a);
+    }
+    
+    return r;
+}
+
+
 static void MixColumns(uint8_t *state, int mode){
-  if(mode == ENCRYPT){ // XA = B (X = state)
+  // state = tmp*state
+  uint8_t tmp[16], res[4][4];
 
+  if(mode == ENCRYPT) memcpy(tmp,M,sizeof(M));
+  else memcpy(tmp,IM,sizeof(IM));
+
+  for(int i=0; i<4; i++){ //rows
+    for(int j=0; j<4; j++){
+      res[i][j] = 0;
+
+      for(int k=0; k<4; k++){ //tmp[i][k]*state[k][j]
+        res[i][j] ^= gf8_mul(tmp[4*i+k],state[4*j+k]);
+      }
+    }
   }
-  else{ // X = A^-1B (B = state)
 
+  for(int i=0; i<4; i++){
+    for(int j=0; j<4; j++){
+      state[4*j+i] = res[i][j];
+    }
   }
 }
 
@@ -132,14 +165,18 @@ static void MixColumns(uint8_t *state, int mode){
  * AES cipher function
  * If mode is nonzero, then do encryption, otherwise do decryption.
  */
+
 void Cipher(uint8_t *state, const uint32_t *roundKey, int mode)
 {
   // 처음 state는 plaintext or ciphertext
   // 각 라운드마다 substitude bytes -> shift rows -> Mix columns -> add round key
   // 마지막 라운드는 mix columns이 빠진 incomplete round
-  AddRoundKey(state, roundKey);
+  int s_round = Nr, f_round = 0, step = -1;
+  if(mode == ENCRYPT) s_round = 0, f_round = Nr, step = 1;
 
-  for(int i=1; i<Nr; i++){
+  AddRoundKey(state, roundKey+Nb*s_round);
+
+  for(int i=s_round+step; i!=f_round; i+=step){
     SubBytes(state,mode);
     ShiftRows(state,mode);
     MixColumns(state,mode);
@@ -147,5 +184,5 @@ void Cipher(uint8_t *state, const uint32_t *roundKey, int mode)
   }
   SubBytes(state,mode);
   ShiftRows(state,mode);
-  AddRoundKey(state,roundKey+Nb*Nr);
+  AddRoundKey(state,roundKey+Nb*f_round);
 }
