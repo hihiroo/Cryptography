@@ -51,14 +51,34 @@ static const uint8_t IM[16] = {0x0e, 0x0b, 0x0d, 0x09, 0x09, 0x0e, 0x0b, 0x0d, 0
 /*
  * Generate an AES key schedule
  */
+
 void uint8_to_uint32(const uint8_t *a, uint32_t *res){
   *res = ((uint32_t)a[3] << 24) | ((uint32_t)a[2] << 16) | ((uint32_t)a[1] << 8) | (uint32_t)a[0];
 }
 
-void LRotWord(uint8_t *array){ // 한 칸 왼쪽으로 이동
-  uint8_t rot0 = array[0];
-  for(int i=0; i<3; i++) array[i] = array[i+1];
-  array[3] = rot0;
+void LRotWord4(uint8_t *a0, uint8_t *a1, uint8_t *a2, uint8_t *a3, int n){ // 4byte word {a0,a1,a2,a3}를 n칸씩 왼쪽으로 이동
+  if(n == 1){
+    uint8_t tmp = *a0;
+    *a0 = *a1;
+    *a1 = *a2;
+    *a2 = *a3;
+    *a3 = tmp;
+  }
+  else if(n == 2){
+    uint8_t tmp = *a0;
+    *a0 = *a2;
+    *a2 = tmp;
+    tmp = *a1;
+    *a1 = *a3;
+    *a3 = tmp;
+  }
+  else if(n == 3){
+    uint8_t tmp = *a3;
+    *a3 = *a2;
+    *a2 = *a1;
+    *a1 = *a0;
+    *a0 = tmp;
+  }
 }
 
 uint32_t g_func(const uint32_t *rkey, int roundNum){
@@ -66,8 +86,11 @@ uint32_t g_func(const uint32_t *rkey, int roundNum){
   memcpy(tmp, rkey, 4);
 
   // LRotWord and S-Box
-  LRotWord(tmp);
-  for(int i=0; i<4; i++) tmp[i] = sbox[tmp[i]];
+  LRotWord4(tmp,tmp+1,tmp+2,tmp+3,1);
+  tmp[0] = sbox[tmp[0]];
+  tmp[1] = sbox[tmp[1]];
+  tmp[2] = sbox[tmp[2]];
+  tmp[3] = sbox[tmp[3]];
 
   // casting uint8 to uint32
   uint32_t res;
@@ -82,9 +105,11 @@ void KeyExpansion(const uint8_t *key, uint32_t *roundKey)
   // key[0:3] = w0, key[4:7] = w1, ..., key[KEYLEN-4:KEYLEN-1] = w_NK-1
   // 즉, 각 key는 1바이트 단위, round key는 4바이트 단위
 
-  for(int i=0; i<Nk; i++){ // 첫 라운드는 사용자 키를 사용
-    uint8_to_uint32(key+i*4, &roundKey[i]);
-  }
+  // 첫 라운드는 사용자 키를 사용
+  uint8_to_uint32(key, &roundKey[0]);
+  uint8_to_uint32(key+4, &roundKey[1]);
+  uint8_to_uint32(key+8, &roundKey[2]);
+  uint8_to_uint32(key+12, &roundKey[3]);
 
   for(int i=Nk; i<RNDKEYSIZE; i++){ // key expansion
     if(i % Nk == 0) roundKey[i] = g_func(roundKey+i-1, i/Nk) ^ roundKey[i-Nk];
@@ -107,20 +132,15 @@ static void SubBytes(uint8_t *state, int mode){
 }
 
 static void ShiftRows(uint8_t *state, int mode){
-  // k번째 행의 각 원소를 k번 왼쪽으로 이동시킴
-  // 복호화 모드에서는 오른쪽으로 k번 이동
-  for(int k=0; k<4; k++){ // k번째 행 
-    uint8_t tmp[Nb];
-    for(int i=0; i<Nb; i++) *(tmp+i) = *(state+i*4+k);
-
-    if(mode == ENCRYPT){
-      for(int i=0; i<k; i++) LRotWord(tmp);
-    }
-    else{// 오른쪽으로 k번 이동 == 왼쪽으로 Nb-k번 이동
-      for(int i=0; i<Nb-k; i++) LRotWord(tmp); 
-    }
-
-    for(int i=0; i<Nb; i++) state[i*4+k] = tmp[i]; 
+  if(mode == ENCRYPT){
+    LRotWord4(state+1, state+5, state+9, state+13, 1); // 왼쪽으로 k번 이동
+    LRotWord4(state+2, state+6, state+10, state+14, 2);
+    LRotWord4(state+3, state+7, state+11, state+15, 3);
+  }
+  else{
+    LRotWord4(state+1, state+5, state+9, state+13, 3); // 오른쪽으로 k번 이동 == 왼쪽으로 Nb-k번 이동
+    LRotWord4(state+2, state+6, state+10, state+14, 2);
+    LRotWord4(state+3, state+7, state+11, state+15, 1);
   }
 }
 
@@ -133,7 +153,6 @@ uint8_t gf8_mul(uint8_t a, uint8_t b){
         b = b >> 1;
         a = XTIME(a);
     }
-    
     return r;
 }
 
@@ -142,24 +161,20 @@ static void MixColumns(uint8_t *state, int mode){
   // gf(2^8)에서의 행렬곱 연산
   // 암호화 모드에서는 M행렬과, 복호화 모드에서는 IM행렬과 곱해준다.
   // state = M*state, state = IM*state
-  uint8_t tmp[16], res[4][4];
+  uint8_t tmp[BLOCKLEN], pre[BLOCKLEN];
 
+  memcpy(pre,state,BLOCKLEN);
   if(mode == ENCRYPT) memcpy(tmp,M,sizeof(M));
   else memcpy(tmp,IM,sizeof(IM));
 
-  for(int i=0; i<4; i++){ //rows
-    for(int j=0; j<4; j++){
-      res[i][j] = 0;
+  for(int i=0; i<4; i++){
+    for(int j=0; j<Nb; j++){
+      int idx = 4*j+i;
+      state[idx] = 0;
 
       for(int k=0; k<4; k++){ //tmp[i][k]*state[k][j]
-        res[i][j] ^= gf8_mul(tmp[4*i+k],state[4*j+k]);
+        state[idx] ^= gf8_mul(tmp[4*i+k],pre[4*j+k]);
       }
-    }
-  }
-
-  for(int i=0; i<4; i++){
-    for(int j=0; j<4; j++){
-      state[4*j+i] = res[i][j];
     }
   }
 }
