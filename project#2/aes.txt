@@ -1,0 +1,26 @@
+<키>
+0f 15 71 c9 47 d9 e8 59 0c b7 ad d6 af 7f 67 98 
+<라운드 키>
+0f 15 71 c9 47 d9 e8 59 0c b7 ad d6 af 7f 67 98 
+dc 90 37 b0 9b 49 df e9 97 fe 72 3f 38 81 15 a7 
+d2 c9 6b b7 49 80 b4 5e de 7e c6 61 e6 ff d3 c6 
+c0 af df 39 89 2f 6b 67 57 51 ad 06 b1 ae 7e c0 
+2c 5c 65 f1 a5 73 0e 96 f2 22 a3 90 43 8c dd 50 
+58 9d 36 eb fd ee 38 7d 0f cc 9b ed 4c 40 46 bd 
+71 c7 4c c2 8c 29 74 bf 83 e5 ef 52 cf a5 a9 ef 
+37 14 93 48 bb 3d e7 f7 38 d8 08 a5 f7 7d a1 4a 
+48 26 45 20 f3 1b a2 d7 cb c3 aa 72 3c be 0b 38 
+fd 0d 42 cb 0e 16 e0 1c c5 d5 4a 6e f9 6b 41 56 
+b4 8e f3 52 ba 98 13 4e 7f 4d 59 20 86 26 18 76 
+---
+<평문>
+01 23 45 67 89 ab cd ef fe dc ba 98 76 54 32 10 
+<암호문>
+ff 0b 84 4a 08 53 bf 7c 69 34 ab 43 64 14 8f b9 
+<복호문>
+01 23 45 67 89 ab cd ef fe dc ba 98 76 54 32 10 
+<역암호문>
+1f e0 22 1f 19 67 12 c4 be cd 5c 1c 60 71 ba a6 
+<복호문>
+01 23 45 67 89 ab cd ef fe dc ba 98 76 54 32 10 
+Random testing................No error found

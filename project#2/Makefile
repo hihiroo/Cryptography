@@ -2,7 +2,7 @@ CC=gcc
 CFLAGS=-Wall
 
 all: test.o aes.o
-	$(CC) $(CFLAGS) -o test test.o aes.o -lbsd
+	$(CC) $(CFLAGS) -v -o test test.o aes.o -lbsd
 
 test.o: test.c aes.h
 	$(CC) $(CFLAGS) -c test.c -lbsd
