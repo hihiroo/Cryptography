@@ -1,6 +1,6 @@
 # 프로젝트#2
 
-2021년 9월 23일  
+[코드 설명 및 보고서](https://www.notion.so/mksmk/Project-2-AES128-fa91e2c00ea24229ab9bcf6791be50e9) 2021년 9월 23일  
 
 ## 목표
 키의 길이가 128 비트인 AES(Advanced Encryption Standard) 알고리즘을 표준스펙에 따라 구현한다. 자세한 스펙은 FIPS-197문서를 참조한다.  
