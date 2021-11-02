@@ -15,6 +15,19 @@
  */
 const uint64_t a[ALEN] = {2,3,5,7,11,13,17,19,23,29,31,37};
 
+
+// ai가 합성수이면 1 return, 소수이면 0 return
+int isComposite(uint64_t ai, uint64_t q, uint64_t k, uint64_t n){
+    uint64_t tmp = mod_pow(ai, q, n);
+    if(tmp == 1 || tmp == n-1) return 0; // a^q % n == 1이면 소수
+
+    for(uint64_t j=1; j<k; j++){
+        tmp = mod_mul(tmp,tmp,n);
+        if(tmp == n-1) return 0;
+    }
+    return 1;
+}
+
 /*
  * miller_rabin() - Miller-Rabin Primality Test (deterministic version)
  *
@@ -23,5 +36,17 @@ const uint64_t a[ALEN] = {2,3,5,7,11,13,17,19,23,29,31,37};
  */
 int miller_rabin(uint64_t n)
 {
-// 여기를 완성하세요
+    if(n == 2) return 1;
+    else if(n < 2 || n % 2 == 0) return 0;
+
+    uint64_t k = 0, q = n-1;
+    while(!(q & 1)){ // (n-1) = (2^k)q 인 k, q 찾기
+        k++;
+        q = q >> 1;
+    }
+
+    for(int i=0; (i<ALEN && a[i]<n-1); i++){
+        if(isComposite(a[i], q, k, n)) return 0;
+    }
+    return 1;
 }
