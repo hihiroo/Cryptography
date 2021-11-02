@@ -16,10 +16,10 @@
 const uint64_t a[ALEN] = {2,3,5,7,11,13,17,19,23,29,31,37};
 
 
-// ai가 합성수이면 1 return, 소수이면 0 return
+// ai로 n이 합성수인지 테스트. 합성수이면 1, 소수이면 0 return
 int isComposite(uint64_t ai, uint64_t q, uint64_t k, uint64_t n){
     uint64_t tmp = mod_pow(ai, q, n);
-    if(tmp == 1 || tmp == n-1) return 0; // a^q % n == 1이면 소수
+    if(tmp == 1 || tmp == n-1) return 0; // a^q % n == 1이면 소수일 확률이 큼
 
     for(uint64_t j=1; j<k; j++){
         tmp = mod_mul(tmp,tmp,n);
