@@ -99,20 +99,23 @@ static int miller_rabin(uint64_t n){
  */
 void mRSA_generate_key(uint64_t *e, uint64_t *d, uint64_t *n)
 {
-    uint64_t p = (1 << 31), q = (1 << 31); // 32번째 비트는 항상 1
+    uint64_t p = 0, q = 0; // 0으로 초기화
+    *e = (1 << 16) + 1; // 65537
 
     while(1){
-        p += (uint64_t)arc4random_uniform(1 << 30); // [2^31, 2^32) 난수 생성
-        q += (uint64_t)arc4random_uniform(1 << 30);
-        q |= 1, p |= 1; // 홀수 만들기
-        if(miller_rabin(p) != PRIME || miller_rabin(q) != PRIME || p*q < MINIMUM_N) continue;
+        arc4random_buf(&p, sizeof(uint32_t)); // 2^32 미만 난수 생성
+        arc4random_buf(&q, sizeof(uint32_t));
+        p |= 0x80000001, q |= 0x80000001; // 항상 2^31 이상 홀수가 됨
+        if(p*q < MINIMUM_N || miller_rabin(p) != PRIME || miller_rabin(q) != PRIME) continue;
+        
+        uint64_t lambda = (p-1) * (q-1) / gcd(p-1, q-1);
+        if(*e >= lambda || gcd(*e, lambda) != 1) continue;
+        
+        *d = mul_inv(*e, lambda); // ed mod lambda = 1
+        *n = p * q;
         break;
     } 
-    *n = p * q;
-
-    uint64_t lambda = (p-1) * (q-1) / gcd(p-1, q-1);
-    *e = (1 << 16) + 1; // 65537
-    *d = mul_inv(*e, lambda); // ed mod lambda = 1
+    
 }
 
 /*
