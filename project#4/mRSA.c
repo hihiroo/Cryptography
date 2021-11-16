@@ -74,8 +74,8 @@ static int isComposite(uint64_t ai, uint64_t q, uint64_t k, uint64_t n){
 }
 
 static int miller_rabin(uint64_t n){
-    if(n == 2) return 1;
-    else if(n < 2 || n % 2 == 0) return 0;
+    if(n == 2) return PRIME;
+    else if(n < 2 || n % 2 == 0) return COMPOSITE;
 
     uint64_t k = 0, q = n-1;
     while(!(q & 1)){ // (n-1) = (2^k)q 인 k, q 찾기
