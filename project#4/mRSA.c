@@ -3,19 +3,23 @@
  * 이 프로그램은 한양대학교 ERICA 소프트웨어학부 재학생을 위한 교육용으로 제작되었습니다.
  */
 #include <stdlib.h>
+#include <bsd/stdlib.h>
 #include "mRSA.h"
 
-const uint64_t a[ALEN] = {2, 3, 5, 7, 11, 13, 17, 19, 23, 29, 31, 37};
+#define swap(a,b,type) do{type tmp=a; a=b; b=tmp;}while(0);
+const uint64_t A[ALEN] = {2, 3, 5, 7, 11, 13, 17, 19, 23, 29, 31, 37};
 
 // a와 b의 최대공약수
 static uint64_t gcd(uint64_t a, uint64_t b){
+    uint64_t tmp;
     while(b > 0){
-        uint64_t tmp = b;
+        tmp = b;
         b = a % b;
         a = tmp;
     } 
     return a;
 }
+
 
 // computes a+b mod m
 static uint64_t mod_add(uint64_t a, uint64_t b, uint64_t m){
@@ -26,7 +30,7 @@ static uint64_t mod_add(uint64_t a, uint64_t b, uint64_t m){
 }
 
 // computes ab mod m
-static uint64_t mod_mul(uint64_t a, uint64_t m){
+static uint64_t mod_mul(uint64_t a, uint64_t b, uint64_t m){
     uint64_t r = 0;
     while(b > 0){
         if(b & 1) r = mod_add(r, a, m);
@@ -83,8 +87,8 @@ static int miller_rabin(uint64_t n){
         q = q >> 1;
     }
 
-    for(int i=0; (i<ALEN && a[i]<n-1); i++){
-        if(isComposite(a[i], q, k, n) == COMPOSITE) return COMPOSITE;
+    for(int i=0; (i<ALEN && A[i]<n-1); i++){
+        if(isComposite(A[i], q, k, n) == COMPOSITE) return COMPOSITE;
     }
     return PRIME;
 }
@@ -95,12 +99,28 @@ static int miller_rabin(uint64_t n){
  */
 void mRSA_generate_key(uint64_t *e, uint64_t *d, uint64_t *n)
 {
+    uint64_t p = (1 << 31), q = (1 << 31); // 32번째 비트는 항상 1
+
+    while(1){
+        p += (uint64_t)arc4random_uniform(1 << 30); // [2^31, 2^32) 난수 생성
+        q += (uint64_t)arc4random_uniform(1 << 30);
+        q |= 1, p |= 1; // 홀수 만들기
+        if(miller_rabin(p) != PRIME || miller_rabin(q) != PRIME || p*q < MINIMUM_N) continue;
+        break;
+    } 
+    *n = p * q;
+
+    uint64_t lambda = (p-1) * (q-1) / gcd(p-1, q-1);
+    *e = (1 << 16) + 1; // 65537
+    *d = mul_inv(*e, lambda); // ed mod lambda = 1
 }
 
 /*
  * mRSA_cipher() - compute m^k mod n
  * If data >= n then returns 1 (error), otherwise 0 (success).
  */
-int mRSA_cipher(uint64_t *m, uint64_t k, uint64_t n)
-{
+int mRSA_cipher(uint64_t *m, uint64_t k, uint64_t n){
+    if(*m >= n) return 1;
+    *m = mod_pow(*m, k, n);
+    return 0;
 }
