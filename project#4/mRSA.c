@@ -9,7 +9,6 @@ const uint64_t a[ALEN] = {2, 3, 5, 7, 11, 13, 17, 19, 23, 29, 31, 37};
 
 // a와 b의 최대공약수
 static uint64_t gcd(uint64_t a, uint64_t b){
-    if(a < 0 || b < 0) return -1;
     while(b > 0){
         uint64_t tmp = b;
         b = a % b;
